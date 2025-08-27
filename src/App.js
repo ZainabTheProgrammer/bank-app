@@ -8,35 +8,60 @@ function App() {
   const [amount, setAmount] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showAll, setShowAll] = useState(false); 
+
+  const maxDeposit = 10000;
+  const maxWithdrawal = 5000;
 
   useEffect(() => {
     console.log("Balance changed to:", balance);
   }, [balance]);
 
-  function handleDeposit() {
+  const handleTransaction = (type) => {
     const amt = parseFloat(amount);
-    if (!isNaN(amt) && amt > 0) {
-      setBalance(balance + amt);
-      setTransactions([...transactions, `Deposited: $${amt}`]);
-      setAmount('');
-      setError('');
-    }
-  }
 
-  function handleWithdraw() {
-    const amt = parseFloat(amount);
+    
     if (isNaN(amt) || amt <= 0) {
-      setError('Enter a valid amount');
+      setError("Enter a valid positive amount");
+      setSuccess('');
       return;
     }
-    if (amt > balance) {
-      setError('Not enough balance!');
+
+    const newTransaction = {
+      type: type,
+      amount: amt,
+      time: new Date()
+    };
+
+    if (type === "deposit") {
+      if (amt > maxDeposit) {
+        setError(`Maximum deposit is $${maxDeposit}`);
+        setSuccess('');
+        return;
+      }
+      setBalance(balance + amt);
+      setTransactions([...transactions, newTransaction]);
+      setSuccess(`Successfully deposited $${amt}`);
+      setError('');
     } else {
+      if (amt > balance) {
+        setError("Not enough balance!");
+        setSuccess('');
+        return;
+      }
+      if (amt > maxWithdrawal) {
+        setError(`Maximum withdrawal is $${maxWithdrawal}`);
+        setSuccess('');
+        return;
+      }
       setBalance(balance - amt);
-      setTransactions([...transactions, `Withdrew: $${amt}`]);
-      setAmount('');
+      setTransactions([...transactions, newTransaction]);
+      setSuccess(`Successfully withdrew $${amt}`);
       setError('');
     }
+
+    setAmount('');
   }
 
   return (
@@ -46,20 +71,28 @@ function App() {
 
         <BalanceDisplay balance={balance} />
 
+        <p>Enter a positive amount to deposit or withdraw.</p>
+
         <div className="controls">
-          <input 
-            type="number" 
-            placeholder="Enter amount" 
-            value={amount} 
-            onChange={(e) => setAmount(e.target.value)} 
+          <input
+            type="number"
+            placeholder="Enter amount"
+            min="1"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
           />
-          <button onClick={handleDeposit}>Deposit</button>
-          <button onClick={handleWithdraw}>Withdraw</button>
+          <button onClick={() => handleTransaction("deposit")}>Deposit</button>
+          <button onClick={() => handleTransaction("withdraw")}>Withdraw</button>
         </div>
 
         {error && <p className="error">{error}</p>}
+        {success && <p className="success">{success}</p>}
 
-        <TransactionList transactions={transactions} />
+        <TransactionList 
+          transactions={transactions} 
+          showAll={showAll} 
+          setShowAll={setShowAll} 
+        />
       </div>
     </div>
   );
